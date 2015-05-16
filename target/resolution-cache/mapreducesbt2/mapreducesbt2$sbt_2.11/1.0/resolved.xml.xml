@@ -4,7 +4,7 @@
 		module="mapreducesbt2$sbt_2.11"
 		revision="1.0"
 		status="integration"
-		publication="20150516123234"
+		publication="20150516174114"
 	/>
 	<configurations>
 		<conf name="default" visibility="public"/>

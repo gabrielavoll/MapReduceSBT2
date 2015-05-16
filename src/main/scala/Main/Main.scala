@@ -1,12 +1,8 @@
 /* Gabriela Voll Gracie Liang */
 
-import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
-import tachyon.worker.WorkerSpaceCounter
+
 import scala.io.Source
-import scala.collection.immutable.List
-import scala.actors.Actor
-import scala.actors.Actor._
 
 
 object Main {
@@ -30,12 +26,25 @@ object Main {
     //NUMBER OF DOCUMENTS AKA LINES
     val numDocuments = Source.fromFile(args(0)).getLines.size
 
+    //val addDocumentId = inputFile.map(x => x.split('\t')) //map{ case(x,i) =>("doc_"+i,x) }
+
     val addDocumentId = inputFile.zipWithIndex.map{ case(x,i) =>("doc_"+i,x) }
     val splitNquantifyNgenefilter = addDocumentId.flatMap( x =>  x._2.split(" ").map(y => ((x._1,y),1))).filter(j => j._1._2.contains("gene"))
+
     //COUNT OF OCCURANCE OF EVERY DISTINCT WORD IN EVERY DOCUMENT
     val OccuranceOfWordPerDoc = splitNquantifyNgenefilter.reduceByKey(_+_).collect()
 
-    
+    val rddToFindDocWithWordX = splitNquantifyNgenefilter.reduceByKey(_+_)
+
+    val numOfDoc = addDocumentId.count()
+
+    println("num Of Doc: " + numOfDoc)
+
+    val docWithWordX = rddToFindDocWithWordX.map(y => (y._1._2, 1)).reduceByKey(_+_)
+
+    //finding the idf for each gene term
+    val idf = docWithWordX.map(x => math.log ( numOfDoc / x._2))
+
 
     //TotalOccurancesOfWord.foreach(println)
     //OccuranceOfWordPerDoc.foreach(println)
