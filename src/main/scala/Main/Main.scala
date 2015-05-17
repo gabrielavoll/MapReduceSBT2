@@ -1,8 +1,14 @@
 /* Gabriela Voll Gracie Liang */
 
+import javax.annotation.Resource
+
+import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 import scala.actors.Actor._
 import scala.actors.Actor
+import java.io._
+import scala.io._
+
 
 object Main {
   def main(args: Array[String]) {
@@ -15,16 +21,13 @@ object Main {
     val inputFile = sc.textFile(args(0), 2).cache()
 
     val flattenAllGeneFilter = inputFile.flatMap(line => line.split(" ").filter(line => line.contains("gene_")))
-    val quantifyFAGF = flattenAllGeneFilter.flatMap(word => word.split(" ")).map(x => (x, 1));
-    //    Nk
-    //TOTAL OCCURANCES OF EACH WORD
-    val TotalOccurancesOfWord = quantifyFAGF.reduceByKey(_ + _) //(term, total # of terms in all documents)
+    val quantifyFAGF = flattenAllGeneFilter.flatMap(word => word.split(" ")).map(x => (x, 1))
+    //    Nk   TOTAL OCCURANCES OF EACH WORD
+    val TotalOccurancesOfWord = quantifyFAGF.reduceByKey(_ + _).collect().toMap //(term, total # of terms in all documents)
     //DISTINCT LIST OF WORDS
-    val wordListBad = inputFile.flatMap(line => line.split(" ").filter(line => line.contains("gene_"))).distinct
-    val wordList = inputFile.flatMap(line => line.split(" ").filter(line => line.contains("gene_"))).distinct.collect()
+    val wordList = inputFile.flatMap(line => line.split(" ").filter(line => line.contains("gene_"))).distinct
 
-    //   D
-    //NUMBER OF DOCUMENTS AKA LINES
+    //    D     NUMBER OF DOCUMENTS AKA LINES
     val numDocuments = inputFile.collect().length
 
     val addDocumentId = inputFile.zipWithIndex.map{ case(x,i) =>("doc_"+i,x) }
@@ -32,82 +35,47 @@ object Main {
 
     //COUNT OF OCCURANCE OF EVERY DISTINCT WORD IN EVERY DOCUMENT
     val OccuranceOfWordPerDoc = splitNquantifyNgenefilter.reduceByKey(_+_).collect()
-
     val rddToFindDocWithWordX = splitNquantifyNgenefilter.reduceByKey(_+_)
 
-    //   d : ti exist in d
-    //CREATION OF COUNT OF DOCS THAT CONTAIN WORD
+    //    d : ti exist in d       CREATION OF COUNT OF DOCS THAT CONTAIN WORD
     val docWithWordX = rddToFindDocWithWordX.map(y => (y._1._2, 1)).reduceByKey(_+_)
 
     //finding the idf for each gene term
-    val idf = docWithWordX.map(x => (x._1,math.log ( numDocuments / x._2)))
+    val idf = docWithWordX.map(x => (x._1,math.log10(( numDocuments.toDouble / x._2.toDouble)))).collect().toMap
+    //ni
+    val OccurWordPerDoc = wordList.map( x => (x, iterateOccuranceWordPerDoc(OccuranceOfWordPerDoc, x, numDocuments)))
 
-    var OccurWordPerDoc: Map[String, Array[Double]] =Map();
+    val tf = OccurWordPerDoc.map(x => ( x._1, tfcreation( x._2, TotalOccurancesOfWord.get(x._1).mkString.toDouble)))
 
-    //var Occur = wordListBad.map( x => (x, iterateOccuranceWordPerDoc(OccuranceOfWordPerDoc, x, numDocuments)))
+   //al tdidfFile = new PrintWriter("TDIDFoutput.txt")
 
-    val iterateActor = actor {
-      for (singleword <- wordList) {
-        //    Ni
-        //CREATION OF ARRAY OF ARRAY (MATRIX) THAT HAS THE COUNT OF EVERY DISTINCT WORD IN EVERY DOCUMENT
-        //INCLUDES ZEROS
-        OccurWordPerDoc += (singleword -> iterateOccuranceWordPerDoc(OccuranceOfWordPerDoc, singleword, numDocuments))
-      }
-    }
+    var tfidf = tf.map(x => (x._1, x._2.map( y => y*(idf.get(x._1).mkString).toDouble)))
 
-    while (iterateActor.getState != Actor.State.Terminated){}
-
-    var tf = OccurWordPerDoc
-    val myActor = actor {
-      for (wordarray <- tf) {
-        for (i <- 0 until wordarray._2.length) {
-          wordarray._2(i) = (wordarray._2(i) / (TotalOccurancesOfWord.lookup(wordarray._1).mkString).toDouble) * ((idf.lookup(wordarray._1).mkString).toDouble)
-        }
-      }
-    }
-
-    while (myActor.getState != Actor.State.Terminated) {}
-    println("\n\n\t IDF of ALL WORDS in ALL DOCUMENTS ")
-
-    for( word <- tf){
+    println("\t TDIDF of ALL WORDS in ALL DOCUMENTS \n\n")
+    for(word <- tfidf){
       print(word._1+"  ")
       for( x <- word._2){ print("   "+x+"   ")}
-      println(" ")
+      print("\n")
     }
 
-    val WordMatrixLength = tf.map( x => (x._1, x._2.map(y => (y*y)).reduce((a, b) => a + b))).map(x => (x._1 , Math.sqrt(x._2)))
-
-    var SemanticSimilarity: Map[(String,String),Double] = Map()
+    //Matrix Length of all Words IE the lower part of Semantic Similarity
+    val WordMLen = tfidf.map( x => (x._1, x._2.map(y => (y*y)).reduce((a, b) => a + b))).map(x => (x._1 , Math.sqrt(x._2))).collect().toMap
 
     //CALUCULATION OF SEMANTIC SIMILARITY
-    val semanticSimActor = actor {
-      var skip = 1
-      for (word <- tf) {
-        var matchskip = 0
-        for (word2 <- tf) {
-          if (matchskip >= skip) {
-            var top = 0.00
-            //CAlCULATION OF TOP DOT PRODCUT OF TWO VECTORS
-            for (i <- 0 until word._2.length) {
-              top = top + (word._2(i) * word2._2(i))
-            }
-            //CALCUSTION OF BOTTOM MULITPLICTION OF VECTOR LENGTH
-            var bot = (WordMatrixLength.get(word._1).mkString).toDouble * (WordMatrixLength.get(word2._1).mkString).toDouble
-            SemanticSimilarity += ((word._1, word2._1) -> (top / bot))
-          }
-          matchskip = matchskip + 1
-        }
-        skip = skip + 1
-      }
+    //val semanticSimActor = actor {
+    var SemanticSim2 = tfidf.cartesian(tfidf)
+    var SemanticSim1 = SemanticSim2.map( x => ((x._1._1, x._2._1),List(x._1._2.toList,x._2._2.toList) transpose))
+    var SemanticSim0 = SemanticSim1.map( x => ((x._1._1, x._1._2), (x._2.map(x => x.reduce(_*_))).reduce(_+_)))
+    val SemanticSim = SemanticSim0.map( x => ( (x._1._1,x._1._2), (x._2/((WordMLen.get(x._1._1).mkString).toDouble * (WordMLen.get(x._1._2).mkString).toDouble) ) )).filter(x => x._2 != 0.0)
+
+    println("\tSemantic Similarity\n\n")
+    for( word <- SemanticSim){
+      print(word._1+"  : "+word._2)
+      print("\n")
     }
 
-
-    while (semanticSimActor.getState != Actor.State.Terminated){}
-    println("Semantic Similarity")
-    SemanticSimilarity.foreach(println)
-
+    println("\n\nPROGRAM DONE CHECK THE OUTPUT FILES\n\n")
   }
-
 
   def iterateOccuranceWordPerDoc( list : Array[((String,String),Int)], wd:String,numD:Int):Array[Double] = {
     var singleWordArray = new Array[Double](numD)
@@ -118,5 +86,8 @@ object Main {
     return singleWordArray
   }
 
-
+  def tfcreation( numlist:Array[Double], z: Double):Array[Double] = {
+    var newnumlist= numlist.map(x => x/z)
+    return newnumlist
+  }
 }
