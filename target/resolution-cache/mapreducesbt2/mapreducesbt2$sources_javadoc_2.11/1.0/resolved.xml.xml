@@ -4,7 +4,7 @@
 		module="mapreducesbt2$sources_javadoc_2.11"
 		revision="1.0"
 		status="integration"
-		publication="20150516215209"
+		publication="20150516231138"
 	/>
 	<configurations>
 		<conf name="compile" visibility="public" description=""/>

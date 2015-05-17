@@ -100,6 +100,9 @@ object Main {
         skip = skip + 1
       }
     }
+
+
+    while (semanticSimActor.getState != Actor.State.Terminated){}
     println("Semantic Similarity")
     SemanticSimilarity.foreach(println)
 
