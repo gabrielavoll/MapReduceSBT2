@@ -611,9 +611,9 @@
 [debug] 	[NOT REQUIRED] org.scala-sbt#test-agent;0.13.5!test-agent.jar
 [debug] 	[NOT REQUIRED] org.scala-sbt#test-interface;1.0!test-interface.jar
 [debug] 	[NOT REQUIRED] org.scala-sbt#apply-macro;0.13.5!apply-macro.jar
-[debug] :: resolution report :: resolve 2653ms :: artifacts dl 72ms
+[debug] :: resolution report :: resolve 1837ms :: artifacts dl 93ms
 [debug] 	report for mapreducesbt2#mapreducesbt2$sbt_2.11;1.0 default produced in C:\Users\Grace\Downloads\Spark_BigData\target\resolution-cache\reports\mapreducesbt2-mapreducesbt2$sbt_2.11-default.xml
-[debug] 	resolve done (2653ms resolve - 72ms download)
+[debug] 	resolve done (1837ms resolve - 93ms download)
 [debug] Using inline dependencies specified in Scala.
 [debug] :: resolving dependencies :: mapreducesbt2#mapreducesbt2$sources_2.11;1.0
 [debug] 	confs: [default]
@@ -955,6 +955,6 @@
 [debug] 	[NOT REQUIRED] org.scala-sbt#precompiled-2_8_2;0.13.5!precompiled-2_8_2.jar(src)
 [debug] 	[NOT REQUIRED] org.scala-sbt#precompiled-2_9_2;0.13.5!precompiled-2_9_2.jar(src)
 [debug] 	[NOT REQUIRED] org.scala-sbt#precompiled-2_9_3;0.13.5!precompiled-2_9_3.jar(src)
-[debug] :: resolution report :: resolve 1216ms :: artifacts dl 133ms
+[debug] :: resolution report :: resolve 486ms :: artifacts dl 115ms
 [debug] 	report for mapreducesbt2#mapreducesbt2$sources_2.11;1.0 default produced in C:\Users\Grace\Downloads\Spark_BigData\target\resolution-cache\reports\mapreducesbt2-mapreducesbt2$sources_2.11-default.xml
-[debug] 	resolve done (1216ms resolve - 133ms download)
+[debug] 	resolve done (486ms resolve - 115ms download)
