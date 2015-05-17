@@ -4,6 +4,8 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/mapreducesbt2.iml" filepath="$PROJECT_DIR$/.idea/modules/mapreducesbt2.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/mapreducesbt2-build.iml" filepath="$PROJECT_DIR$/.idea/modules/mapreducesbt2-build.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/spark_bigdata.iml" filepath="$PROJECT_DIR$/.idea/modules/spark_bigdata.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/spark_bigdata-build.iml" filepath="$PROJECT_DIR$/.idea/modules/spark_bigdata-build.iml" />
     </modules>
   </component>
 </project>

@@ -1,9 +1,8 @@
 /* Gabriela Voll Gracie Liang */
 
 import org.apache.spark.{SparkConf, SparkContext}
-
-import scala.io.Source
-
+import scala.actors.Actor._
+import scala.actors.Actor
 
 object Main {
   def main(args: Array[String]) {
@@ -46,20 +45,28 @@ object Main {
     var OccurWordPerDoc: Map[String, Array[Double]] =Map();
 
     //var Occur = wordListBad.map( x => (x, iterateOccuranceWordPerDoc(OccuranceOfWordPerDoc, x, numDocuments)))
-    for(singleword <- wordList ){
-      //    Ni
-      //CREATION OF ARRAY OF ARRAY (MATRIX) THAT HAS THE COUNT OF EVERY DISTINCT WORD IN EVERY DOCUMENT
-      //INCLUDES ZEROS
-      OccurWordPerDoc += (singleword -> iterateOccuranceWordPerDoc(OccuranceOfWordPerDoc, singleword, numDocuments))
-    }
 
-    var tf = OccurWordPerDoc
-    //MAKE ME ACTOR THIS ONE ES
-    for( wordarray <- tf){
-      for(  i <- 0 until wordarray._2.length ){
-        wordarray._2(i)= (wordarray._2(i) / (TotalOccurancesOfWord.lookup(wordarray._1).mkString).toDouble) * ((idf.lookup(wordarray._1).mkString).toDouble)
+    val iterateActor = actor {
+      for (singleword <- wordList) {
+        //    Ni
+        //CREATION OF ARRAY OF ARRAY (MATRIX) THAT HAS THE COUNT OF EVERY DISTINCT WORD IN EVERY DOCUMENT
+        //INCLUDES ZEROS
+        OccurWordPerDoc += (singleword -> iterateOccuranceWordPerDoc(OccuranceOfWordPerDoc, singleword, numDocuments))
       }
     }
+
+    while (iterateActor.getState != Actor.State.Terminated){}
+
+    var tf = OccurWordPerDoc
+    val myActor = actor {
+      for (wordarray <- tf) {
+        for (i <- 0 until wordarray._2.length) {
+          wordarray._2(i) = (wordarray._2(i) / (TotalOccurancesOfWord.lookup(wordarray._1).mkString).toDouble) * ((idf.lookup(wordarray._1).mkString).toDouble)
+        }
+      }
+    }
+
+    while (myActor.getState != Actor.State.Terminated) {}
     println("\n\n\t IDF of ALL WORDS in ALL DOCUMENTS ")
 
     for( word <- tf){
@@ -72,23 +79,26 @@ object Main {
 
     var SemanticSimilarity: Map[(String,String),Double] = Map()
 
-    //MAKE ME ACTOR
     //CALUCULATION OF SEMANTIC SIMILARITY
-    var skip = 1
-    for(word <- tf ){
-      var matchskip = 0
-      for(word2 <- tf){
-        if(matchskip >= skip ) {
-          var top = 0.00
-          //CAlCULATION OF TOP DOT PRODCUT OF TWO VECTORS
-          for( i <- 0 until word._2.length){ top = top + (word._2(i)*word2._2(i))}
-          //CALCUSTION OF BOTTOM MULITPLICTION OF VECTOR LENGTH
-          var bot = (WordMatrixLength.get(word._1).mkString).toDouble * (WordMatrixLength.get(word2._1).mkString).toDouble
-          SemanticSimilarity += ( (word._1, word2._1) -> (top/bot) )
+    val semanticSimActor = actor {
+      var skip = 1
+      for (word <- tf) {
+        var matchskip = 0
+        for (word2 <- tf) {
+          if (matchskip >= skip) {
+            var top = 0.00
+            //CAlCULATION OF TOP DOT PRODCUT OF TWO VECTORS
+            for (i <- 0 until word._2.length) {
+              top = top + (word._2(i) * word2._2(i))
+            }
+            //CALCUSTION OF BOTTOM MULITPLICTION OF VECTOR LENGTH
+            var bot = (WordMatrixLength.get(word._1).mkString).toDouble * (WordMatrixLength.get(word2._1).mkString).toDouble
+            SemanticSimilarity += ((word._1, word2._1) -> (top / bot))
+          }
+          matchskip = matchskip + 1
         }
-        matchskip = matchskip+1
+        skip = skip + 1
       }
-      skip= skip+1
     }
     println("Semantic Similarity")
     SemanticSimilarity.foreach(println)
@@ -96,7 +106,6 @@ object Main {
   }
 
 
-  //MAKE ME ACTOR
   def iterateOccuranceWordPerDoc( list : Array[((String,String),Int)], wd:String,numD:Int):Array[Double] = {
     var singleWordArray = new Array[Double](numD)
     for(occur <- list) {
